@@ -651,33 +651,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                         }
 
                         /// get current location
-                        if (widget.hasLocationPermission) {
-                          await Geolocator.requestPermission();
-                          Position position =
-                              await Geolocator.getCurrentPosition(
-                            desiredAccuracy: widget.desiredAccuracy,
-                          );
-                          LatLng latLng =
-                              LatLng(position.latitude, position.longitude);
-                          _initialPosition = latLng;
-                          final controller = await _controller.future;
-
-                          /// animate camera to current location
-                          controller.animateCamera(
-                            CameraUpdate.newCameraPosition(
-                              cameraPosition(),
-                            ),
-                          );
-
-                          /// decode address from latitude & longitude
-                          _decodeAddress(
-                            Location(
-                              lat: position.latitude,
-                              lng: position.longitude,
-                            ),
-                          );
-                          setState(() {});
-                        }
+                        await navigateToCurrentLocation();
                       },
                       child: Icon(widget.fabIcon),
                     ),
@@ -760,6 +734,38 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     );
   }
 
+  Future<void> navigateToCurrentLocation() async {
+    try {
+      if (widget.hasLocationPermission) {
+        await Geolocator.requestPermission();
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: widget.desiredAccuracy,
+        );
+        LatLng latLng = LatLng(position.latitude, position.longitude);
+        _initialPosition = latLng;
+        final controller = await _controller.future;
+
+        /// animate camera to current location
+        controller.animateCamera(
+          CameraUpdate.newCameraPosition(
+            cameraPosition(),
+          ),
+        );
+
+        /// decode address from latitude & longitude
+        _decodeAddress(
+          Location(
+            lat: position.latitude,
+            lng: position.longitude,
+          ),
+        );
+        setState(() {});
+      }
+    } catch (e) {
+      logger.e(e);
+    }
+  }
+
   /// Camera position moved to location
   CameraPosition cameraPosition() {
     return CameraPosition(
@@ -781,7 +787,23 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
         ),
       );
     }
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      if (widget.currentLatLng != null) {
+        navigateToCurrentLocation();
+      }
+    });
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    //just dispose the search controller if not disposed by the parent
+    try {
+      _searchController.dispose();
+    } catch (e) {
+      logger.e(e);
+    }
+    super.dispose();
   }
 
   /// Decode address from latitude & longitude
