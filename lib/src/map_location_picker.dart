@@ -788,7 +788,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       );
     }
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      if (widget.currentLatLng != null) {
+      if (widget.currentLatLng == null) {
         navigateToCurrentLocation();
       }
     });
